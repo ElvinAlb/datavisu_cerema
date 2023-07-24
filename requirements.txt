@@ -3,3 +3,4 @@ numpy
 pandas
 bokeh==2.4.3
 datetime
+plotly
