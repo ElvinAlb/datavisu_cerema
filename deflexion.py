@@ -88,5 +88,5 @@ if st.session_state.clicked:
         fig.update_layout(title='Déflexion', autosize=False, width=1000, height=700)
         st.plotly_chart(fig)
 
-    with st.expander("Afficher le dataframe"):
+        with st.expander("Afficher le dataframe"):
             st.dataframe(data)
