@@ -8,10 +8,13 @@ import plotly.express as px
 
 st.set_page_config(page_title="Interface", page_icon=":chart_with_upwards_trend:", layout="wide")
 
+#with open('style.css') as f:
+#    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    
 st.markdown(
         f"""
         <style>
-            .appview-container .main {{
+            .appview-container .main .block-container{{
                 padding-right: {10}rem;
                 padding-left: {10}rem;
                 }}
@@ -92,8 +95,8 @@ if st.session_state.clicked:
                 fig.update_traces(line=dict(color="mediumslateblue", width=0.5))
 
             
-            fig.update_layout(height=700, showlegend=False)
-            st.plotly_chart(fig)
+            fig.update_layout(autosize=True, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             for i in range(data.shape[0]):
@@ -120,8 +123,8 @@ if st.session_state.clicked:
                     fig2=px.line(x=esp_y,y=list_row_inv)
                 fig2.update_traces(line=dict(color="mediumslateblue", width=0.5))
             
-            fig2.update_layout(height=700, showlegend=False)
-            st.plotly_chart(fig2)
+            fig2.update_layout(autosize=True, showlegend=False)
+            st.plotly_chart(fig2, use_container_width=True)
 
         
         inverser_3d=st.checkbox("Inverser la courbe (3d)")
