@@ -166,7 +166,7 @@ with tab2:
         data_file = st.file_uploader("Upload CSV température", type=["csv"], accept_multiple_files=False) #upload csv file
         if data_file is not None:
             file_details = {"filename":data_file.name, "filesize":data_file.size}
-            data=pd.read_csv(data_file, index_col=2)#read csv
+            data=pd.read_csv(data_file, index_col=2, sep=";")#read csv
         
             nb_columns= len(data.columns)
             date=pd.to_datetime(data.index, dayfirst=True)
@@ -263,7 +263,7 @@ with tab2:
                 st.write(tempminmax)
                 
                 st.write("Max et Min sur l'intervalle sélectionné")
-                temp_intervalle=data[start_date_slider.strftime("%d/%m/%Y %H:%M"):end_date_slider.strftime("%d/%m/%Y %H:%M")]
+                temp_intervalle=data[slider_range[0].strftime("%d/%m/%Y %H:%M"):slider_range[1].strftime("%d/%m/%Y %H:%M")]
                 temp_intervalle_max=temp_intervalle.max()
                 temp_intervalle_min=temp_intervalle.min()
                 temp_intervalle_minmax=pd.concat([temp_intervalle_max,temp_intervalle_min], axis=1)
@@ -277,7 +277,6 @@ with tab2:
                 st.write("Nombre total de données : " + str(nb_data_tot))
 
     #------------------------- Localisation GPS ----------------------------------------------
-            #localisation={'latitude': [data['latitude'][0]], 'longitude': [data['longitude'][0]]}       
 
             with st.expander("Localisation"):
                 col1,col2,col3,col4 = st.columns([0.25,0.25,0.25,0.25])
@@ -293,18 +292,28 @@ with tab2:
                 st.map(map_data, zoom=14)
     #----------------------------- Slicing des données -------------------------------------------
             with st.expander("Réduction du nombre de données"):
-                pas_slice=int(st.number_input("Selectionner le pas pour réduire le dataframe", min_value=1, value=1))
-                data_clear=data.iloc[::pas_slice]
+                
 
-                date_slice=pd.to_datetime(data_clear.index, dayfirst=True)    
+                date_slice=pd.to_datetime(data.index, dayfirst=True)    
 
                 range_date=st.date_input("Intervalle de temps", (date_slice[0], date_slice[len(date_slice)-1]))
                 range_date_start=dt.datetime.combine(range_date[0], dt.time(date_slice[0].hour,date_slice[0].minute))
                 range_date_end=dt.datetime.combine(range_date[1], dt.time(date_slice[len(date_slice)-1].hour,date_slice[len(date_slice)-1].minute))
 
-                data_clear=data_clear[range_date_start.strftime("%d/%m/%Y %H:%M"):range_date_end.strftime("%d/%m/%Y %H:%M")]
-                data_clear=data_clear.reset_index()
-                list_date = data_clear['date_heure'].tolist()
+                data_clear=data[range_date_start.strftime("%d/%m/%Y %H:%M"):range_date_end.strftime("%d/%m/%Y %H:%M")]
+                
+                #list_date = data_clear['date_heure'].tolist()
+
+                col1,col2=st.columns(2)
+                with col1:
+
+                    pas_slice=int(st.number_input("Selectionner le pas pour réduire le dataframe", min_value=1, value=1))
+                    data_clear=data_clear.iloc[::pas_slice]
+                    data_clear=data_clear.reset_index()
+
+                with col2:
+                    st.write("Nombre de valeurs: ")
+                    st.info(data_clear.shape[0])
 
                 st.dataframe(data_clear)
 
@@ -339,11 +348,48 @@ with tab2:
                         plot_test_outliers.line(date, data_filter[x], line_color=color_list[i])
                         i+=1
                     st.bokeh_chart(plot_test_outliers,use_container_width=True)
+                
+                if 'export' not in st.session_state:
+                    st.session_state.export=False
+        
+                def set_export():
+                    if st.session_state.export==False:
+                        st.session_state.export=True
+                    elif st.session_state.export==True:
+                        st.session_state.export=False
+
+                st.button("Exporter les données sans les valeurs aberrantes", on_click=set_export)
+
+                if st.session_state.export:
+                    #localisation={'latitude':[latitude],'longitude':[longitude]}
+
+                    #df_localisation=pd.DataFrame(localisation)
+
+                    data_filter.insert(0,"longitude",longitude)
+                    data_filter.insert(0,"latitude",latitude)
+                    #data_export=df_localisation.merge(data_filter,left_on='latitude',right_on="date_heure")
+                    st.write(data_filter)
+                    #data_export.to_csv()
+
+                    def convert_df(df):
+                        return df.to_csv(index=False).encode('utf-8')
+
+
+                    csv = convert_df(data_filter)
+
+                    st.download_button(
+                    "Press to Download",
+                    csv,
+                    "filtre_"+data_file.name,
+                    "text/csv",
+                    key='download-csv'
+                    )
+                
     #------------------------- Gradient de température -----------------------------------------
             with st.expander("Gradient"):
                 depth=[-10,-20,-30,-40,-50,-60,-70,-80]
 
-                palette=sns.color_palette("hls",len(list_date))
+                palette=sns.color_palette("hls",data_clear.shape[0])
                 palette=palette.as_hex()
 
 
@@ -364,8 +410,8 @@ with tab2:
                     data_clear.drop('t_ambiante',axis="columns",inplace=True)
                     
 
-                    for i in range(len(list_date)):
-                        locals()["grad"+str(i)]=plot_gradient.line(data_clear.loc[i],depth, legend_label=str(list_date[i]),line_color=palette[i])
+                    for i in range(1,data_clear.shape[0]):
+                        locals()["grad"+str(i)]=plot_gradient.line(data_clear.loc[i],depth, legend_label=str(i),line_color=palette[i])
                         
                     plot_gradient.legend.visible=False
 
